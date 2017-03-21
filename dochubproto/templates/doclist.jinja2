@@ -1,6 +1,8 @@
 <ul>{% for key, doclist in bysec.items() %}
   <li>{{key}}{% for doc in doclist %}
-    <dl>{{doc.title}}
+    <hr>
+    <dl>
+      <dt>Title</dt><dd>{{doc.title}}</dd>
       <dt>Document ID</dt><dd>{{doc.slug}}</dd>
       <dt>Document URL</dt><dd><a href="{{doc.published_url}}">URL</a></dd>
       <dt>Github Repo URL</dt><dd><a href="{{doc.doc_repo}}">GitHub</a></dd>

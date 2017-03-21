@@ -8,17 +8,18 @@ DocHub prototype - www.lsst.io.generator
 from dochubproto import DocHubProto
 
 p = DocHubProto()
-ul = p.render()
+idx = p.render_index()
 ```
 
 ## Environment
 
 `DocHubProto` uses the following environment variables: `KEEPER_URL`,
-`LOGLEVEL`, `TEMPLATE_DIR`, `TEMPLATE_NAME`, and
+`LOGLEVEL`, `TEMPLATE_DIR`, `UL_TEMPLATE_NAME`, `IDX_TEMPLATE_NAME`, and
 `MAX_DOCUMENT_DATA_AGE`.  If those are not specified, the default values
 are, respectively, `https://keeper.lsst.codes`, `WARNING`, `templates`
-relative to the `dochubproto` module, `doclist.jinja2`, and `3600` (age is
-expressed in seconds and must be convertible to a Python float).
+relative to the `dochubproto` module, `doclist.jinja2`, `index.jinja2`,
+and `3600` (age is expressed in seconds and must be convertible to a
+Python float).
 
 ## Methods
 
@@ -34,7 +35,8 @@ expressed in seconds and must be convertible to a Python float).
   section, a list ordered by document handle (e.g. `dmtn-038`).
   
 * `render()` returns an HTML unordered list entity created from the
-  document data.
+  document data, encoded as UTF-8.  `render_index()` returns an HTML
+  document created from the document data, encoded as UTF-8.
   
 * `debug()`, `info()`, `warning()`, `error()`, and `critical()` each
   log a message at the specified level; it uses a `structlog` logger to
