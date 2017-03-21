@@ -39,7 +39,12 @@ class DocHubProto(object):
 
     HTML-rendered data can be retrieved with render(); this can take a
     refresh_if_stale boolean, which will check data freshness and refresh
-    if necessary before returning rendered data.
+    if necessary before returning rendered data.  It returns an HTML ul
+    entity.
+
+    A complete HTML index page can be retrieved with render_index().  It
+    calls render() and takes the same refresh_if_stale boolean.  It returns
+    an HTML document.
 
     The two methods refresh_document_data() and start_refresh_document_data()
     get fresh data from the backend data sources.  The first is synchronous,
@@ -54,7 +59,8 @@ class DocHubProto(object):
     # pylint: disable = too-many-instance-attributes
     DEFAULT_KEEPER_URL = "https://keeper.lsst.codes"
     DEFAULT_MAX_DOCUMENT_DATA_AGE = 3600.0
-    DEFAULT_TEMPLATE_NAME = "doclist.jinja2"
+    DEFAULT_UL_TEMPLATE_NAME = "doclist.jinja2"
+    DEFAULT_IDX_TEMPLATE_NAME = "index.jinja2"
     STATE_EMPTY = "empty"
     STATE_READY = "ready"
     STATE_REFRESHING = "refreshing"
@@ -64,11 +70,12 @@ class DocHubProto(object):
         """Create a DocHubProto object.
 
         It uses the following environment variables: KEEPER_URL, LOGLEVEL,
-        TEMPLATE_DIR, TEMPLATE_NAME, and MAX_DOCUMENT_DATA_AGE.  If those
-        are not specified, the default values are, respectively,
-        "https://keeper.lsst.codes", "WARNING", "templates" relative to
-        the dochubproto module, "doclist.jinja2", and "3600" (age is
-        expressed in seconds and must be convertible to a Python float).
+        TEMPLATE_DIR, UL_TEMPLATE_NAME, IDX_TEMPLATE_NAME, and
+        MAX_DOCUMENT_DATA_AGE.  If those are not specified, the default values
+        are, respectively, "https://keeper.lsst.codes", "WARNING", "templates"
+        relative to the dochubproto module, "doclist.jinja2", "index.jinja2",
+        and "3600" (age is expressed in seconds and must be convertible to a
+        Python float).
         """
         name = 'dochubproto'
         self.keeper_url = os.getenv("KEEPER_URL", self.DEFAULT_KEEPER_URL)
@@ -81,11 +88,17 @@ class DocHubProto(object):
             self.template_dir = os.path.dirname(sys.modules[name].__file__
                                                 ) + "/templates"
         self.info("TD %s" % self.template_dir)
-        self.template_name = os.getenv(
-            "TEMPLATE_NAME", self.DEFAULT_TEMPLATE_NAME)
-        self.renderer = jinja2.Environment(
+        self.ul_template_name = os.getenv(
+            "UL_TEMPLATE_NAME", self.DEFAULT_UL_TEMPLATE_NAME)
+        self.idx_template_name = os.getenv(
+            "IDX_TEMPLATE_NAME", self.DEFAULT_IDX_TEMPLATE_NAME)
+        self.jinja_loader = jinja2.Environment(
             loader=jinja2.FileSystemLoader(self.template_dir)
-        ).get_template(self.template_name)
+        )
+        self.ul_renderer = self.jinja_loader.get_template(
+            self.ul_template_name)
+        self.idx_renderer = self.jinja_loader.get_template(
+            self.idx_template_name)
         self.max_document_data_age = self.DEFAULT_MAX_DOCUMENT_DATA_AGE
         mdda = "MAX_DOCUMENT_DATA_AGE"
         mca = os.getenv(mdda)
@@ -232,8 +245,9 @@ class DocHubProto(object):
         return self.state
 
     def render(self, refresh_if_stale=False):
-        """Render document data into HTML.  If refresh_if_stale is True,
-        check document freshness, and refresh if necessary before rendering.
+        """Render document data into HTML ul entity with UTF-8 encoding.
+        If refresh_if_stale is True, check document freshness, and refresh
+        if necessary before rendering.
         """
         docdata = self.get_document_data()
         if not docdata:
@@ -246,7 +260,15 @@ class DocHubProto(object):
         if not docdata:
             self.warning("No document data to render.")
             return None
-        rdata = self.renderer.render(bysec=docdata).encode('utf-8')
+        rdata = self.ul_renderer.render(bysec=docdata).encode('utf-8')
+        return rdata
+
+    def render_index(self, refresh_if_stale=False):
+        """Render HTML index page with UTF-8 encoding.
+        """
+        ulist = self.render(refresh_if_stale=refresh_if_stale)
+        rdata = self.idx_renderer.render(ul=ulist.decode('utf-8'),
+                                         asset_dir="assets").encode('utf-8')
         return rdata
 
     def _get_docurls(self):
