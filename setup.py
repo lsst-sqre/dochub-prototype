@@ -35,7 +35,6 @@ setup(
     license=LICENSE,
     classifiers=[
         'Development Status :: 4 - Beta',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'License :: OSI Approved :: MIT License',
     ],
