@@ -11,6 +11,9 @@ LSST DocHub Prototype
 
 Prototype of LSST DocHub (`www.lsst.io`_) as a static website generator.
 
+The DocHub project is an effort to index LSST's meta information — such as documents, software, tickets, and conversations — to make them accessible from a single website and API.
+Read more about the DocHub concept in `SQR-013: LSST DocHub Design <https://sqr-013.lsst.io>`_.
+
 Usage
 =====
 
