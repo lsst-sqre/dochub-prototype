@@ -48,5 +48,4 @@ setup(
         'Jinja2>=2.9,<3.0.0',
         'sqre-apikit>=0.1.1,<1.0.0'
     ],
-    tests_require=['pytest', 'pytest-flake8', 'pytest-cov']
 )
