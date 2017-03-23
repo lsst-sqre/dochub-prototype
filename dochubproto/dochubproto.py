@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """DocHubProto provides a class to generate the www.lsst.io index page.
 """
 import os
