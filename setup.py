@@ -5,8 +5,8 @@ import os
 import codecs
 from setuptools import setup, find_packages
 
-PACKAGENAME = 'sqre-dochub-proto'
-DESCRIPTION = 'DocHubProto class for creating www.lsst.io index'
+PACKAGENAME = 'lsst-dochub-proto'
+DESCRIPTION = 'Prototype of LSST DocHub as a static website generator'
 AUTHOR = 'Adam Thornton'
 AUTHOR_EMAIL = 'athornton@lsst.org'
 URL = 'https://github.com/sqre-lsst/dochub-prototype'
@@ -22,7 +22,7 @@ def local_read(filename):
     return codecs.open(full_filename, 'r', 'utf-8').read()
 
 
-LONG_DESC = local_read('README.md')
+LONG_DESC = local_read('README.rst')
 
 setup(
     name=PACKAGENAME,
