@@ -6,3 +6,14 @@ install:
   - pip install -r requirements.txt
 script:
   - py.test --flake8
+deploy:
+  provider: pypi
+  user: sqre-admin
+  skip_upload_docs: true
+  distributions: sdist bdist_wheel
+  password:
+    # PyPI deployment credentials for sqre-admin
+    secure: "m+n2jFzFfMqQaiI9o4+SSQDLODqwbygCYVa9co8XRGun9q/0/1R+Ze3G37uw9yfa6XTkUbjyGQ1beqcUTDryobK2e1jUFBjzZZ29mKQCoCg5AtpyCZeoK7G1JfLTlRAQsVrm4hT/Rwg7791XYGykrqCytdSXunn0rX9nBF+/h2CKTrI4DP9lueco7AxAKbFUtQ0m+KBlFQcwL7YtC2xNalxReWIrrm+odmWfx7rgkILYZ6sk66gNQSb1gufYYAr3Bei7BfzcG9z9EgwQ297vB0LRDt/p4Yz3y4U7BgHHRFiRON3RYbHYUmlQbVTZP/NVyfEUOXYCQY1SrjCmMXbHrjDLN4CpnZYN6TbWWwNpNWVpvYqRCQ/vvhfRBS+b1TOjvfWJtqYTZGdiBk34o8dOXn+FYZnfSsb4jiOi7f9WjMAsyxRHYlOkqnSLtKjoNpWVqOpK6eJ5YFcolUnR1/N1O8WAfIgQHVb9Mr34fMmEOmm/nfqeOHLkYliHbdQFs1I6vYYm7AKbFanCvbQZMrwLy8xugMkemZDCQF4aBCanGwhTA4Kyoxa0sXG43/6fupNG5KRzFtbBG9EnEnY+mqAuS9KWge2eP2wtVH4UG2ARNdlX6rfPHUjbCHKl565aYZpA/k7QaqcnpL8sRwb7XC4lSpHaKmnI1Wbf3AmYyR8RNYg="
+  on:
+    tags: true
+    repo: lsst-sqre/dochub-prototype
