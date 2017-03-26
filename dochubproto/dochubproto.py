@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """DocHubProto provides a class to generate the www.lsst.io index page.
 """
 import os
@@ -9,7 +8,9 @@ import jinja2
 import requests
 import yaml
 from apikit import get_logger, raise_from_response, retry_request, BackendError
+import ltdconveyor
 from .sections import SECTIONS
+from .upload import KeeperClient
 
 try:
     from json.decoder import JSONDecodeError
@@ -56,11 +57,6 @@ class DocHubProto(object):
     data logger.
     """
 
-    # pylint: disable = too-many-instance-attributes
-    DEFAULT_KEEPER_URL = "https://keeper.lsst.codes"
-    DEFAULT_MAX_DOCUMENT_DATA_AGE = 3600.0
-    DEFAULT_UL_TEMPLATE_NAME = "doclist.jinja2"
-    DEFAULT_IDX_TEMPLATE_NAME = "index.jinja2"
     STATE_EMPTY = "empty"
     STATE_READY = "ready"
     STATE_REFRESHING = "refreshing"
@@ -78,20 +74,21 @@ class DocHubProto(object):
         Python float).
         """
         name = 'dochubproto'
-        self.keeper_url = os.getenv("KEEPER_URL", self.DEFAULT_KEEPER_URL)
-        loglevel = os.getenv("LOGLEVEL")
+
+        self.keeper_url = os.getenv("KEEPER_URL", 'https://keeper.lsst.codes')
+
+        loglevel = os.getenv("LOGLEVEL", 'WARNING')
         self.logger = get_logger(level=loglevel)
-        self.document_data = None
+
         self.template_dir = os.getenv("TEMPLATE_DIR")
-        # pylint: disable=bad-continuation
-        if not self.template_dir:
-            self.template_dir = os.path.dirname(sys.modules[name].__file__
-                                                ) + "/templates"
+        if self.template_dir is None:
+            self.template_dir = os.path.join(
+                os.path.dirname(sys.modules[name].__file__),
+                "/templates")
         self.info("TD %s" % self.template_dir)
-        self.ul_template_name = os.getenv(
-            "UL_TEMPLATE_NAME", self.DEFAULT_UL_TEMPLATE_NAME)
-        self.idx_template_name = os.getenv(
-            "IDX_TEMPLATE_NAME", self.DEFAULT_IDX_TEMPLATE_NAME)
+
+        self.ul_template_name = os.getenv("UL_TEMPLATE_NAME", "doclist.jinja2")
+        self.idx_template_name = os.getenv("IDX_TEMPLATE_NAME", "index.jinja2")
         self.jinja_loader = jinja2.Environment(
             loader=jinja2.FileSystemLoader(self.template_dir)
         )
@@ -99,17 +96,18 @@ class DocHubProto(object):
             self.ul_template_name)
         self.idx_renderer = self.jinja_loader.get_template(
             self.idx_template_name)
-        self.max_document_data_age = self.DEFAULT_MAX_DOCUMENT_DATA_AGE
-        mdda = "MAX_DOCUMENT_DATA_AGE"
-        mca = os.getenv(mdda)
-        if mca:
-            try:
-                self.max_document_data_age = float(mca)
-            except ValueError:
-                self.warning("Could not convert %s '%s' to number" %
-                             (mdda, mca))
+
+        self.max_document_data_age = os.getenv('MAX_DOCUMENT_DATA_AGE', 3600)
+        try:
+            # ensure max cache age is a float
+            self.max_document_data_age = float(self.max_document_data_age)
+        except ValueError:
+            self.error('Could not convert MAX_DOCUEMT_DATA_AGE '
+                       '{0!r} to number'.format(self.max_document_data_age))
+
         self.document_refresh_time = 0.0  # The epoch stands in for "never"
         self.state = "empty"
+        self.document_data = None
 
     def debug(self, *args, **kwargs):
         """Log debug-level message.
@@ -270,6 +268,52 @@ class DocHubProto(object):
         rdata = self.idx_renderer.render(ul=ulist.decode('utf-8'),
                                          asset_dir="assets").encode('utf-8')
         return rdata
+
+    def upload_site(self, keeper_user, keeper_password,
+                    aws_access_key_id, aws_secret_access_key,
+                    ltd_product_name='www', git_refs=None,
+                    bucket_name='lsst-the-docs'):
+        """Upload the site to LSST the Docs.
+
+        Parameters
+        ----------
+        edition : `str`
+            Name of the LSST the Docs edition. The ``'main'`` edition is the
+            default URL.
+        """
+        index_html = self.render()
+
+        if git_refs is None:
+            git_refs = ['master']
+
+        client_args = (ltd_product_name, git_refs,
+                       self.keeper_url, keeper_user, keeper_password)
+        with KeeperClient(*client_args) as keeper_client:
+            bucket = ltdconveyor.open_bucket(
+                bucket_name=bucket_name,
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key)
+
+            object_metadata = {
+                'surrogate-key': keeper_client.surrogate_key,
+                'surrogate-control': 'max-age=31536000'
+            }
+
+            ltdconveyor.upload_object(
+                bucket_path=os.path.join(keeper_client.s3_prefix,
+                                         'index.html'),
+                bucket=bucket,
+                content=index_html,
+                cache_control='no-cache',
+                content_type='text/html',
+                metadata=object_metadata,
+            )
+
+            ltdconveyor.create_dir_redirect_object(
+                keeper_client.s3_prefix,
+                bucket,
+                metadata=object_metadata,
+                cache_control='no-cache')
 
     def _get_docurls(self):
         """Return the list of product URLs that match our sections.
