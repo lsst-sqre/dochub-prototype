@@ -55,11 +55,6 @@ class DocHubProto(object):
     data logger.
     """
 
-    # pylint: disable = too-many-instance-attributes
-    DEFAULT_KEEPER_URL = "https://keeper.lsst.codes"
-    DEFAULT_MAX_DOCUMENT_DATA_AGE = 3600.0
-    DEFAULT_UL_TEMPLATE_NAME = "doclist.jinja2"
-    DEFAULT_IDX_TEMPLATE_NAME = "index.jinja2"
     STATE_EMPTY = "empty"
     STATE_READY = "ready"
     STATE_REFRESHING = "refreshing"
@@ -77,20 +72,21 @@ class DocHubProto(object):
         Python float).
         """
         name = 'dochubproto'
-        self.keeper_url = os.getenv("KEEPER_URL", self.DEFAULT_KEEPER_URL)
-        loglevel = os.getenv("LOGLEVEL")
+
+        self.keeper_url = os.getenv("KEEPER_URL", 'https://keeper.lsst.codes')
+
+        loglevel = os.getenv("LOGLEVEL", 'WARNING')
         self.logger = get_logger(level=loglevel)
-        self.document_data = None
+
         self.template_dir = os.getenv("TEMPLATE_DIR")
-        # pylint: disable=bad-continuation
-        if not self.template_dir:
-            self.template_dir = os.path.dirname(sys.modules[name].__file__
-                                                ) + "/templates"
+        if self.template_dir is None:
+            self.template_dir = os.path.join(
+                os.path.dirname(sys.modules[name].__file__),
+                "/templates")
         self.info("TD %s" % self.template_dir)
-        self.ul_template_name = os.getenv(
-            "UL_TEMPLATE_NAME", self.DEFAULT_UL_TEMPLATE_NAME)
-        self.idx_template_name = os.getenv(
-            "IDX_TEMPLATE_NAME", self.DEFAULT_IDX_TEMPLATE_NAME)
+
+        self.ul_template_name = os.getenv("UL_TEMPLATE_NAME", "doclist.jinja2")
+        self.idx_template_name = os.getenv("IDX_TEMPLATE_NAME", "index.jinja2")
         self.jinja_loader = jinja2.Environment(
             loader=jinja2.FileSystemLoader(self.template_dir)
         )
@@ -98,17 +94,18 @@ class DocHubProto(object):
             self.ul_template_name)
         self.idx_renderer = self.jinja_loader.get_template(
             self.idx_template_name)
-        self.max_document_data_age = self.DEFAULT_MAX_DOCUMENT_DATA_AGE
-        mdda = "MAX_DOCUMENT_DATA_AGE"
-        mca = os.getenv(mdda)
-        if mca:
-            try:
-                self.max_document_data_age = float(mca)
-            except ValueError:
-                self.warning("Could not convert %s '%s' to number" %
-                             (mdda, mca))
+
+        self.max_document_data_age = os.getenv('MAX_DOCUMENT_DATA_AGE', 3600)
+        try:
+            # ensure max cache age is a float
+            self.max_document_data_age = float(self.max_document_data_age)
+        except ValueError:
+            self.error('Could not convert MAX_DOCUEMT_DATA_AGE '
+                       '{0!r} to number'.format(self.max_document_data_age))
+
         self.document_refresh_time = 0.0  # The epoch stands in for "never"
         self.state = "empty"
+        self.document_data = None
 
     def debug(self, *args, **kwargs):
         """Log debug-level message.
