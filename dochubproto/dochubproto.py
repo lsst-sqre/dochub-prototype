@@ -8,7 +8,9 @@ import jinja2
 import requests
 import yaml
 from apikit import get_logger, raise_from_response, retry_request, BackendError
+import ltdconveyor
 from .sections import SECTIONS
+from .upload import KeeperClient
 
 try:
     from json.decoder import JSONDecodeError
@@ -266,6 +268,55 @@ class DocHubProto(object):
         rdata = self.idx_renderer.render(ul=ulist.decode('utf-8'),
                                          asset_dir="assets").encode('utf-8')
         return rdata
+
+    def upload_site(self, keeper_user, keeper_password,
+                    aws_access_key_id, aws_secret_access_key,
+                    ltd_product_name='www', git_refs=None,
+                    bucket_name='lsst-the-docs'):
+        """Upload the site to LSST the Docs.
+
+        Parameters
+        ----------
+        edition : `str`
+            Name of the LSST the Docs edition. The ``'main'`` edition is the
+            default URL.
+        """
+        index_html = self.render()
+
+        if git_refs is None:
+            git_refs = ['master']
+
+        client_args = (ltd_product_name, git_refs,
+                       self.keeper_url, keeper_user, keeper_password)
+        with KeeperClient(*client_args) as keeper_client:
+            bucket = ltdconveyor.open_bucket(
+                bucket_name=bucket_name,
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key)
+
+            object_metadata = {
+                'surrogate-key': keeper_client.surrogate_key,
+                'surrogate-control': 'max-age=31536000'
+            }
+
+            bucket_path = os.path.join(keeper_client.s3_prefix,
+                                       'index.html')
+            self.debug('bucket html path: {0}'.format(bucket_path))
+
+            ltdconveyor.upload_object(
+                bucket_path=bucket_path,
+                bucket=bucket,
+                content=index_html,
+                cache_control='no-cache',
+                content_type='text/html',
+                metadata=object_metadata,
+            )
+
+            ltdconveyor.create_dir_redirect_object(
+                keeper_client.s3_prefix,
+                bucket,
+                metadata=object_metadata,
+                cache_control='no-cache')
 
     def _get_docurls(self):
         """Return the list of product URLs that match our sections.
