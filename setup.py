@@ -10,7 +10,7 @@ DESCRIPTION = 'Prototype of LSST DocHub as a static website generator'
 AUTHOR = 'Adam Thornton'
 AUTHOR_EMAIL = 'athornton@lsst.org'
 URL = 'https://github.com/sqre-lsst/dochub-prototype'
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 LICENSE = 'MIT'
 
 
@@ -45,6 +45,7 @@ setup(
         'requests>=2.13.0,<3.0.0',
         'pyyaml>=3.12,<4.0.0',
         'Jinja2>=2.9,<3.0.0',
-        'sqre-apikit>=0.1.1,<1.0.0'
+        'sqre-apikit>=0.1.1,<1.0.0',
+        'ltd-conveyor>=0.3.1,<0.4.0'
     ],
 )
