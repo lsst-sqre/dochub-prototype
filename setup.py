@@ -48,4 +48,9 @@ setup(
         'sqre-apikit>=0.1.1,<1.0.0',
         'ltd-conveyor>=0.3.1,<0.4.0'
     ],
+    entry_points={
+        'console_scripts': [
+            'dochub-prototype = dochubproto.cli:main'
+        ]
+    }
 )
