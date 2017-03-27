@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Top-level sections of DocHub content.
 """
 
